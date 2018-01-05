@@ -1,33 +1,40 @@
-###############################################################################
-# START HERE: Tutorial 1: Getting used to the ScraperWiki editing interface.
-# Follow the actions listed with -- BLOCK CAPITALS below.
-###############################################################################
-
-# -----------------------------------------------------------------------------
-# 1. Start by running a really simple Python script, just to make sure that 
-# everything is working OK.
-# -- CLICK THE 'RUN' BUTTON BELOW
-# You should see some numbers print in the 'Console' tab below. If it doesn't work, 
-# try reopening this page in a different browser - Chrome or the latest Firefox.
-# -----------------------------------------------------------------------------
-
-for i in range(10):
-    print "Hello", i
-
-# -----------------------------------------------------------------------------
-# 2. Next, try scraping an actual web page and getting some raw HTML.
-# -- UNCOMMENT THE THREE LINES BELOW (i.e. delete the # at the start of the lines)
-# -- CLICK THE 'RUN' BUTTON AGAIN 
-# You should see the raw HTML at the bottom of the 'Console' tab. 
-# Click on the 'more' link to see it all, and the 'Sources' tab to see our URL - 
-# you can click on the URL to see the original page. 
-# -----------------------------------------------------------------------------
-
-#import scraperwiki
-#html = scraperwiki.scrape('https://scraperwiki.com/hello_world.html')
-#print html
-
-# -----------------------------------------------------------------------------
-# In the next tutorial, you'll learn how to extract the useful parts
-# from the raw HTML page.
-# -----------------------------------------------------------------------------
+########################
+# We use a ScraperWiki library called pdftoxml to scrape PDFs
+# This is an example of scraping a simple PDF
+########################
+import scraperwiki
+import urllib2
+import lxml.etree
+url = "http://www.madingley.org/uploaded/Hansard_08.07.2010.pdf"
+pdfdata = urllib2.urlopen(url).read()
+print "The pdf file has %d bytes" % len(pdfdata)
+xmldata = scraperwiki.pdftoxml(pdfdata)
+print "After converting to xml it has %d bytes" % len(xmldata)
+print "The first 2000 characters are: ", xmldata[:2000]
+root = lxml.etree.fromstring(xmldata)
+pages = list(root)
+print "The pages are numbered:", [ page.attrib.get("number") for page in pages ]
+#this function has to work recursively because we might have
+#"<bPart1 <ipart 2</i</b"
+def gettext_with_bi_tags(el): 
+    res = [ ]
+    if el.text:
+        res.append(el.text)
+    for lel in el:
+        res.append("<%s" % lel.tag)
+        res.append(gettext_with_bi_tags(lel))
+        res.append("</%s" % lel.tag)
+        if el.tail:
+            res.append(el.tail)
+    return "".join(res)
+# print the first hundred text elements from the first page
+page0 = pages[0]
+for el in list(page)[:100]:
+    if el.tag == "text":
+        print el.attrib, gettext_with_bi_tags(el)
+# If you have many PDF documents to extract data from, the trick
+#is to find what's similar in the way that the information is
+#presented in them in terms of the top left bottom right
+#pixel locations.  It's real work, but you can use the position
+#visualizer here:
+#    http://scraperwikiviews.com/run/pdf-to-html-preview-1/
